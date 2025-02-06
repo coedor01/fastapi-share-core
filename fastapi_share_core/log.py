@@ -5,7 +5,6 @@ from fastapi_share_core.config import core_settings
 
 
 def setup_logger():
-
     # 创建日志目录
     log_path = Path(core_settings.log_save_path)
     log_path.mkdir(exist_ok=True)

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from pathlib import Path
 from fastapi import Depends
 from fastapi_share_core.config import core_settings
+from fastapi_share_core.exception import ConfigException
 from fastapi_share_core.utils import get_s_timestamp
 
 engine = create_async_engine(
@@ -46,7 +47,9 @@ AsyncSessionDep = Annotated[AsyncSession, Depends(get_db)]
 class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True, comment="自增ID")
     created_at: Mapped[int] = mapped_column(default=get_s_timestamp, comment="创建时间")
-    updated_at: Mapped[int] = mapped_column(default=get_s_timestamp, onupdate=get_s_timestamp, comment="更新时间")
+    updated_at: Mapped[int] = mapped_column(
+        default=get_s_timestamp, onupdate=get_s_timestamp, comment="更新时间"
+    )
 
 
 async def _check_database_exist():
@@ -69,8 +72,9 @@ async def _check_database_exist():
             await conn.execute(
                 sa.text(
                     "CREATE DATABASE `:db_name`"
-                    " DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"),
-                {"db_name": core_settings.db_name}
+                    " DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+                ),
+                {"db_name": core_settings.db_name},
             )
             logger.info(f"已成功创建数据库{core_settings.db_name}")
 
@@ -80,9 +84,7 @@ def _update_alembic_ini():
     parser = configparser.ConfigParser()
     parser.read(core_settings.db_alembic_cfg_filename)
     parser.set("alembic", "script_location", core_settings.db_alembic_script_location)
-    sqlalchemy_url = core_settings.sqlalchemy_uri.render_as_string(
-        hide_password=False
-    )
+    sqlalchemy_url = core_settings.sqlalchemy_uri.render_as_string(hide_password=False)
     parser.set("alembic", "sqlalchemy.url", sqlalchemy_url)
     with open(core_settings.db_alembic_cfg_filename, "w") as f:
         parser.write(f)
@@ -93,20 +95,22 @@ def _update_alembic_env():
     env_path = f"{core_settings.db_alembic_script_location}/env.py"
 
     # 读取文件内容
-    with open(env_path, 'r') as file:
+    with open(env_path, "r") as file:
         content = file.read()
 
     # 定义要替换的模式
-    pattern = r'target_metadata = None'
+    pattern = r"target_metadata = None"
 
     # 新的配置内容
-    replacement = 'from fastapi_share_core.db import Base\ntarget_metadata = Base.metadata'
+    replacement = (
+        "from fastapi_share_core.db import Base\ntarget_metadata = Base.metadata"
+    )
 
     # 执行替换
     new_content = re.sub(pattern, replacement, content)
 
     # 写回文件
-    with open(env_path, 'w') as file:
+    with open(env_path, "w") as file:
         file.write(new_content)
 
 
@@ -114,8 +118,8 @@ def _check_alembic_init():
     """检查alembic是否初始化"""
     # 检查alembic是否初始化
     if not (
-            Path(core_settings.db_alembic_script_location).is_dir()
-            or Path(core_settings.db_alembic_cfg_filename).is_file()
+        Path(core_settings.db_alembic_script_location).is_dir()
+        or Path(core_settings.db_alembic_cfg_filename).is_file()
     ):
         logger.info("检测到alembic还未初始化，3秒后将自动初始化")
         time.sleep(3)
@@ -146,9 +150,7 @@ def _sync_db_and_orm():
 
 async def _drop_alembic_version():
     async with engine.connect() as conn:
-        await conn.execute(
-            sa.text("DROP TABLE IF EXISTS alembic_version;")
-        )
+        await conn.execute(sa.text("DROP TABLE IF EXISTS alembic_version;"))
 
 
 async def create_all_tables():
@@ -157,7 +159,18 @@ async def create_all_tables():
         await conn.run_sync(Base.metadata.create_all)
 
 
-def db_check():
+def check_db():
+    if any(
+        [
+            core_settings.db_host is None,
+            core_settings.db_port is None,
+            core_settings.db_username is None,
+            core_settings.db_password is None,
+            core_settings.db_name is None,
+        ]
+    ):
+        raise ConfigException("请检查数据库配置")
+
     asyncio.run(_check_database_exist())
     _check_alembic_init()
     if core_settings.env == "production":

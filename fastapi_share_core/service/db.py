@@ -6,12 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_pagination.ext.sqlalchemy import paginate
 
 from fastapi_share_core.db import AsyncSessionDep
-from fastapi_share_core.meta.data_service import DataServiceMeta
+from fastapi_share_core.meta.db_service import DbServiceMeta
 
-ModelType = TypeVar('ModelType')
+ModelType = TypeVar("ModelType")
 
 
-class BaseDataService(Generic[ModelType], metaclass=DataServiceMeta):
+class BaseDbService(Generic[ModelType], metaclass=DbServiceMeta):
     model: Type[ModelType]
 
     def __init__(self):
@@ -41,8 +41,10 @@ class BaseDataService(Generic[ModelType], metaclass=DataServiceMeta):
         if clauses:
             stmt = stmt.where(*clauses)
         if not transformer:
+
             def transformer(items):
                 return items
+
         return await paginate(self.db, stmt, transformer=transformer)
 
     async def create(self, **kwargs) -> ModelType:
