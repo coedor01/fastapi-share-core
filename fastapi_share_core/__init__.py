@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi_pagination import add_pagination
 
+from fastapi_share_core.celery import check_celery, get_celery
 from fastapi_share_core.config import core_settings
 from fastapi_share_core.db import check_db
 from fastapi_share_core.redis import check_redis
@@ -15,14 +16,14 @@ from fastapi_share_core.service.db import BaseDbService
 from fastapi_share_core.service.redis import BaseRedisService
 from fastapi_share_core.exception.error import BaseEC
 
-__all__ = ["add_share_core", "Base", "BaseDbService", "BaseRedisService", "BaseEC"]
+__all__ = ["add_share_core", "Base", "BaseDbService", "BaseRedisService", "BaseEC", "get_celery"]
 
 
 def add_share_core(
-    app: FastAPI,
-    enable_db: bool = False,
-    enable_redis: bool = False,
-    enable_celery: bool = False,
+        app: FastAPI,
+        enable_db: bool = False,
+        enable_redis: bool = False,
+        enable_celery: bool = False,
 ) -> None:
     """
 
@@ -69,3 +70,6 @@ def add_share_core(
 
     if enable_redis:
         check_redis()
+
+    if enable_celery:
+        check_celery()

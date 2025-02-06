@@ -31,6 +31,8 @@ class CoreSettings(BaseSettings):
     redis_port: int | None = Field(None, description="Redis服务端口")
     redis_password: str | None = Field(None, description="Redis服务密码")
     redis_max_connections: int = Field(1024, description="Redis客户端最大连接数量")
+    celery_backend: str | None = Field(None, description="celery backend 链接")
+    celery_broker: str | None = Field(None, description="celery broker 链接")
 
     @property
     def sqlalchemy_uri(self) -> URL:
