@@ -1,0 +1,17 @@
+[project]
+name = "fastapi-share-core"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.14.1",
+    "cryptography>=44.0.0",
+    "fastapi-pagination>=0.12.34",
+    "fastapi[standard]>=0.115.8",
+    "loguru>=0.7.3",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic-settings>=2.7.1",
+    "pyjwt>=2.10.1",
+    "sqlalchemy[asyncmy]>=2.0.37",
+]
