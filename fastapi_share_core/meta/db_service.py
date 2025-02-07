@@ -1,7 +1,4 @@
-from fastapi_share_core.meta.singleton import ThreadUnsafeSingletonMeta
-
-
-class DbServiceMeta(ThreadUnsafeSingletonMeta):
+class DALMeta(type):
     def __new__(mcs, name, bases, namespace, **kwargs):
         cls = super().__new__(mcs, name, bases, namespace)
         # 从 kwargs 中获取 model 参数并设置为类属性

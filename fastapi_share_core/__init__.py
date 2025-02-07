@@ -12,18 +12,26 @@ from fastapi_share_core.redis import check_redis
 from fastapi_share_core.exception import BusinessException
 from fastapi_share_core.log import setup_logger
 from fastapi_share_core.db import Base
-from fastapi_share_core.service.db import BaseDbService
+from fastapi_share_core.service.db import dal_maker_factory, DAL
 from fastapi_share_core.service.redis import BaseRedisService
 from fastapi_share_core.exception.error import BaseEC
 
-__all__ = ["add_share_core", "Base", "BaseDbService", "BaseRedisService", "BaseEC", "get_celery"]
+__all__ = [
+    "add_share_core",
+    "Base",
+    "dal_maker_factory",
+    "DAL",
+    "BaseRedisService",
+    "BaseEC",
+    "get_celery",
+]
 
 
 def add_share_core(
-        app: FastAPI,
-        enable_db: bool = False,
-        enable_redis: bool = False,
-        enable_celery: bool = False,
+    app: FastAPI,
+    enable_db: bool = False,
+    enable_redis: bool = False,
+    enable_celery: bool = False,
 ) -> None:
     """
 

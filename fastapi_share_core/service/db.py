@@ -1,32 +1,23 @@
 import sqlalchemy as sa
-from contextvars import ContextVar
-from typing import TypeVar, Type, Generic, Sequence, Iterable
-
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import TypeVar, Generic, Sequence, Iterable, Type
 from fastapi_pagination.ext.sqlalchemy import paginate
 
 from fastapi_share_core.db import AsyncSessionDep
-from fastapi_share_core.meta.db_service import DbServiceMeta
+from fastapi_share_core.meta.db_service import DALMeta
 
 ModelType = TypeVar("ModelType")
 
 
-class BaseDbService(Generic[ModelType], metaclass=DbServiceMeta):
-    model: Type[ModelType]
+class DAL(Generic[ModelType], metaclass=DALMeta):
+    model: ModelType
 
-    def __init__(self):
-        self._db: ContextVar[AsyncSession] = ContextVar("db")
-
-    @property
-    def db(self):
-        return self._db.get()
-
-    def __call__(self, db: AsyncSessionDep):
-        self._db.set(db)
-        return self
+    def __init__(self, db: AsyncSession):
+        self.db = db
 
     async def get_by_id(self, _id: int) -> ModelType | None:
-        stmt = sa.select(self.model).where(sa.col(self.model.id) == _id)
+        stmt = sa.select(self.model).where(self.model.id == _id)
         return await self.db.scalar(stmt)
 
     async def get_all(self, clauses=None) -> Sequence[ModelType]:
@@ -64,7 +55,7 @@ class BaseDbService(Generic[ModelType], metaclass=DbServiceMeta):
         return instance
 
     async def delete(self, _id: int):
-        stmt = sa.delete(self.model).where(sa.col(self.model.id) == _id)
+        stmt = sa.delete(self.model).where(self.model.id == _id)
         await self.db.execute(stmt)
 
     async def delete_with_clauses(self, clauses):
@@ -72,7 +63,7 @@ class BaseDbService(Generic[ModelType], metaclass=DbServiceMeta):
         await self.db.execute(stmt)
 
     async def get_many_by_ids(self, ids: Iterable[int]) -> Sequence[ModelType]:
-        clauses = [sa.col(self.model.id).in_(ids)]
+        clauses = [self.model.id.in_(ids)]
         return await self.get_all(clauses)
 
     async def vf_ids(self, ids: Iterable[int]) -> bool:
@@ -87,3 +78,13 @@ class BaseDbService(Generic[ModelType], metaclass=DbServiceMeta):
         if item is None:
             raise False
         return True
+
+
+def dal_maker_factory(dal_type: Type[DAL]):
+    def dal_maker(db: AsyncSessionDep):
+        executor = dal_type(db=db)
+        logger.debug(f"新建db会话: {id(db)}")
+        logger.debug(f"新建DbServiceExecutor: {id(executor)}")
+        return executor
+
+    return dal_maker
